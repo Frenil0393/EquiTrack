@@ -1,8 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Star, TrendingUp, TrendingDown, ArrowLeft } from 'lucide-react';
 import { MOCK_STOCKS, generateMockChartData } from '../data/mockData';
 import StockChart from '../components/StockChart';
+
+const STORAGE_KEY = 'equitrack_watchlist';
+
+const readWatchlist = () => {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+  } catch {
+    return [];
+  }
+};
 
 const StockDetails = () => {
   const { symbol } = useParams();
@@ -12,15 +22,34 @@ const StockDetails = () => {
   const [isSaved, setIsSaved] = useState(false);
 
   useEffect(() => {
-    // Mock fetch
-    const data = MOCK_STOCKS.find(s => s.symbol.toLowerCase() === symbol.toLowerCase());
+    const data = MOCK_STOCKS.find((s) => s.symbol.toLowerCase() === symbol.toLowerCase());
     if (data) {
       setStock(data);
-      // Generate chart data based on timeframe
       const days = timeframe === '1W' ? 7 : timeframe === '1M' ? 30 : timeframe === '1Y' ? 365 : 1;
       setChartData(generateMockChartData(days));
+
+      const wl = readWatchlist();
+      setIsSaved(wl.some((item) => item.symbol === data.symbol));
     }
   }, [symbol, timeframe]);
+
+  const toggleWatchlist = () => {
+    if (!stock) return;
+    const wl = readWatchlist();
+
+    if (isSaved) {
+      const next = wl.filter((item) => item.symbol !== stock.symbol);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      setIsSaved(false);
+    } else {
+      const next = [
+        ...wl,
+        { symbol: stock.symbol, addedOn: new Date().toISOString().split('T')[0] },
+      ];
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      setIsSaved(true);
+    }
+  };
 
   if (!stock) {
     return (
@@ -43,17 +72,12 @@ const StockDetails = () => {
           <h1 style={{ fontSize: '2.5rem', marginBottom: '0.25rem' }}>{stock.symbol}</h1>
           <p className="text-muted" style={{ fontSize: '1.25rem' }}>{stock.name}</p>
         </div>
-        
+
         <div style={{ textAlign: 'right' }}>
           <h2 style={{ fontSize: '2.5rem', marginBottom: '0.25rem' }}>₹{stock.price.toFixed(2)}</h2>
           <p style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'flex-end',
-            gap: '0.5rem',
-            fontSize: '1.25rem',
-            color: isPositive ? 'var(--success)' : 'var(--danger)',
-            fontWeight: '500'
+            display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.5rem',
+            fontSize: '1.25rem', color: isPositive ? 'var(--success)' : 'var(--danger)', fontWeight: '500',
           }}>
             {isPositive ? <TrendingUp /> : <TrendingDown />}
             {Math.abs(stock.change)}% Today
@@ -63,10 +87,10 @@ const StockDetails = () => {
 
       <div className="grid grid-cols-1" style={{ marginBottom: '2rem' }}>
         <div className="card">
-          <div className="flex-between" style={{ marginBottom: '1.5rem' }}>
+          <div className="flex-between" style={{ marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
             <div style={styles.timeframes}>
-              {['1D', '1W', '1M', '1Y'].map(tf => (
-                <button 
+              {['1D', '1W', '1M', '1Y'].map((tf) => (
+                <button
                   key={tf}
                   className={`btn ${timeframe === tf ? '' : 'btn-outline'}`}
                   style={{ padding: '0.25rem 1rem', fontSize: '0.875rem' }}
@@ -76,17 +100,17 @@ const StockDetails = () => {
                 </button>
               ))}
             </div>
-            
-            <button 
+
+            <button
               className={`btn ${isSaved ? 'btn-outline' : ''}`}
-              onClick={() => setIsSaved(!isSaved)}
+              onClick={toggleWatchlist}
               style={isSaved ? { color: '#EAB308', borderColor: '#EAB308' } : {}}
             >
               <Star size={18} fill={isSaved ? '#EAB308' : 'none'} />
               {isSaved ? 'Saved to Watchlist' : 'Add to Watchlist'}
             </button>
           </div>
-          
+
           <div style={{ height: '400px' }}>
             <StockChart data={chartData} isPositive={isPositive} />
           </div>
@@ -95,18 +119,12 @@ const StockDetails = () => {
 
       <div className="grid grid-cols-2">
         <div className="card">
-          <h3 style={{ marginBottom: '1rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
-            Company Overview
-          </h3>
-          <p className="text-muted" style={{ lineHeight: '1.6' }}>
-            {stock.description}
-          </p>
+          <h3 style={styles.sectionTitle}>Company Overview</h3>
+          <p className="text-muted" style={{ lineHeight: '1.6' }}>{stock.description}</p>
         </div>
-        
+
         <div className="card">
-          <h3 style={{ marginBottom: '1rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
-            Key Statistics
-          </h3>
+          <h3 style={styles.sectionTitle}>Key Statistics</h3>
           <div style={styles.statsGrid}>
             <div style={styles.statItem}>
               <span className="text-muted">Day High</span>
@@ -118,7 +136,9 @@ const StockDetails = () => {
             </div>
             <div style={styles.statItem}>
               <span className="text-muted">Previous Close</span>
-              <span style={styles.statValue}>₹{(stock.price - (stock.price * (stock.change / 100))).toFixed(2)}</span>
+              <span style={styles.statValue}>
+                ₹{(stock.price - stock.price * (stock.change / 100)).toFixed(2)}
+              </span>
             </div>
           </div>
         </div>
@@ -129,34 +149,28 @@ const StockDetails = () => {
 
 const styles = {
   backLink: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '0.5rem',
-    color: 'var(--text-muted)',
-    marginBottom: '1.5rem',
-    textDecoration: 'none',
+    display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+    color: 'var(--text-muted)', marginBottom: '1.5rem', textDecoration: 'none',
   },
   timeframes: {
-    display: 'flex',
-    gap: '0.5rem',
+    display: 'flex', gap: '0.5rem',
     background: 'rgba(255, 255, 255, 0.05)',
-    padding: '0.25rem',
-    borderRadius: '8px',
+    padding: '0.25rem', borderRadius: '8px',
+  },
+  sectionTitle: {
+    marginBottom: '1rem',
+    borderBottom: '1px solid var(--border)',
+    paddingBottom: '0.5rem',
   },
   statsGrid: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: '1rem',
+    display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem',
   },
   statItem: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '0.25rem',
+    display: 'flex', flexDirection: 'column', gap: '0.25rem',
   },
   statValue: {
-    fontSize: '1.125rem',
-    fontWeight: '500',
-  }
+    fontSize: '1.125rem', fontWeight: '500',
+  },
 };
 
 export default StockDetails;

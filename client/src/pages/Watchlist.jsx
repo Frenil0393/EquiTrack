@@ -1,20 +1,40 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Star, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { MOCK_WATCHLIST, MOCK_STOCKS } from '../data/mockData';
+import { MOCK_STOCKS } from '../data/mockData';
+
+const STORAGE_KEY = 'equitrack_watchlist';
+
+const DEFAULT_WATCHLIST = [
+  { symbol: 'RELIANCE', addedOn: '2026-08-16' },
+  { symbol: 'HDFCBANK', addedOn: '2026-08-17' },
+];
 
 const Watchlist = () => {
-  const [watchlist, setWatchlist] = useState(MOCK_WATCHLIST);
+  const [watchlist, setWatchlist] = useState(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      return stored ? JSON.parse(stored) : DEFAULT_WATCHLIST;
+    } catch {
+      return DEFAULT_WATCHLIST;
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(watchlist));
+  }, [watchlist]);
 
   const handleRemove = (symbol) => {
-    setWatchlist(watchlist.filter(item => item.symbol !== symbol));
+    setWatchlist((prev) => prev.filter((item) => item.symbol !== symbol));
   };
 
-  // Map watchlist items to full stock data
-  const watchlistStocks = watchlist.map(item => {
-    const stockData = MOCK_STOCKS.find(s => s.symbol === item.symbol) || {};
-    return { ...stockData, addedOn: item.addedOn };
-  });
+  // Merge with full stock data
+  const watchlistStocks = watchlist
+    .map((item) => {
+      const stockData = MOCK_STOCKS.find((s) => s.symbol === item.symbol);
+      return stockData ? { ...stockData, addedOn: item.addedOn } : null;
+    })
+    .filter(Boolean);
 
   return (
     <div>
@@ -23,6 +43,9 @@ const Watchlist = () => {
           <Star className="text-accent" />
           My Watchlist
         </h1>
+        <span className="text-muted" style={{ fontSize: '0.9rem' }}>
+          {watchlistStocks.length} {watchlistStocks.length === 1 ? 'stock' : 'stocks'}
+        </span>
       </div>
 
       {watchlistStocks.length === 0 ? (
@@ -34,28 +57,30 @@ const Watchlist = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1">
-          {watchlistStocks.map(stock => (
+          {watchlistStocks.map((stock) => (
             <div key={stock.symbol} className="card flex-between" style={{ padding: '1rem 1.5rem' }}>
               <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
-                <div style={{ minWidth: '100px' }}>
+                <div style={{ minWidth: '140px' }}>
                   <Link to={`/stock/${stock.symbol}`} style={styles.symbolLink}>
                     <h3>{stock.symbol}</h3>
                   </Link>
                   <p className="text-muted" style={{ fontSize: '0.875rem' }}>{stock.name}</p>
                 </div>
+
                 <div>
                   <p style={{ fontWeight: '600' }}>₹{stock.price?.toFixed(2)}</p>
                   <p className={stock.change >= 0 ? 'text-success' : 'text-danger'} style={{ fontSize: '0.875rem' }}>
                     {stock.change >= 0 ? '+' : ''}{stock.change}%
                   </p>
                 </div>
+
                 <div className="text-muted" style={{ fontSize: '0.875rem' }}>
                   Added: {stock.addedOn}
                 </div>
               </div>
-              
-              <button 
-                className="btn btn-outline" 
+
+              <button
+                className="btn btn-outline"
                 style={{ padding: '0.5rem', color: 'var(--danger)', borderColor: 'transparent' }}
                 onClick={() => handleRemove(stock.symbol)}
                 title="Remove from Watchlist"
@@ -74,7 +99,7 @@ const styles = {
   symbolLink: {
     color: 'var(--accent-color)',
     textDecoration: 'none',
-  }
+  },
 };
 
 export default Watchlist;

@@ -1,12 +1,17 @@
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Star, User, LogOut, TrendingUp } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const Navbar = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
-  const isActive = (path) => {
-    return location.pathname === path ? 'active' : '';
+  const isActive = (path) => location.pathname === path;
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login', { replace: true });
   };
 
   return (
@@ -16,29 +21,34 @@ const Navbar = () => {
           <TrendingUp color="var(--success)" size={28} />
           <span>EquiTrack</span>
         </Link>
-        
+
         <div style={styles.navLinks}>
-          <Link to="/dashboard" className={isActive('/dashboard')} style={styles.link}>
-            <LayoutDashboard size={18} />
+          <NavLink to="/dashboard" icon={<LayoutDashboard size={18} />} active={isActive('/dashboard')}>
             Dashboard
-          </Link>
-          <Link to="/watchlist" className={isActive('/watchlist')} style={styles.link}>
-            <Star size={18} />
+          </NavLink>
+          <NavLink to="/watchlist" icon={<Star size={18} />} active={isActive('/watchlist')}>
             Watchlist
-          </Link>
-          <Link to="/profile" className={isActive('/profile')} style={styles.link}>
-            <User size={18} />
-            Profile
-          </Link>
-          <Link to="/login" style={{...styles.link, color: 'var(--danger)'}}>
+          </NavLink>
+          <NavLink to="/profile" icon={<User size={18} />} active={isActive('/profile')}>
+            {user?.name?.split(' ')[0] || 'Profile'}
+          </NavLink>
+
+          <button onClick={handleLogout} style={styles.logoutBtn} title="Logout">
             <LogOut size={18} />
             Logout
-          </Link>
+          </button>
         </div>
       </div>
     </nav>
   );
 };
+
+const NavLink = ({ to, icon, active, children }) => (
+  <Link to={to} style={{ ...styles.link, color: active ? 'var(--accent-color)' : 'var(--text-muted)' }}>
+    {icon}
+    {children}
+  </Link>
+);
 
 const styles = {
   navbar: {
@@ -62,6 +72,7 @@ const styles = {
     fontSize: '1.5rem',
     fontWeight: '700',
     color: 'var(--text-main)',
+    textDecoration: 'none',
   },
   navLinks: {
     display: 'flex',
@@ -75,7 +86,24 @@ const styles = {
     color: 'var(--text-muted)',
     fontWeight: '500',
     transition: 'color 0.2s ease',
-  }
+    textDecoration: 'none',
+    fontSize: '0.95rem',
+  },
+  logoutBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    background: 'transparent',
+    border: '1px solid var(--border)',
+    color: 'var(--danger)',
+    padding: '0.5rem 1rem',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+    fontSize: '0.9rem',
+    fontWeight: '500',
+    transition: 'all 0.2s ease',
+  },
 };
 
 export default Navbar;

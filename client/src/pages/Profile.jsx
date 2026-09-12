@@ -1,19 +1,30 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { User, Save } from 'lucide-react';
-import { MOCK_USER } from '../data/mockData';
+import { useAuth } from '../context/AuthContext';
 
 const Profile = () => {
+  const { user, updateProfile } = useAuth();
+
   const [profile, setProfile] = useState({
-    name: MOCK_USER.name,
-    email: MOCK_USER.email
+    name: user?.name || '',
+    email: user?.email || '',
   });
   const [message, setMessage] = useState('');
 
+  useEffect(() => {
+    if (user) {
+      setProfile({ name: user.name, email: user.email });
+    }
+  }, [user]);
+
   const handleUpdate = (e) => {
     e.preventDefault();
+    updateProfile({ name: profile.name });
     setMessage('Profile updated successfully.');
     setTimeout(() => setMessage(''), 3000);
   };
+
+  if (!user) return null;
 
   return (
     <div>
@@ -34,20 +45,20 @@ const Profile = () => {
           <form onSubmit={handleUpdate}>
             <div className="form-group">
               <label className="form-label">Full Name</label>
-              <input 
-                type="text" 
-                className="form-input" 
+              <input
+                type="text"
+                className="form-input"
                 value={profile.name}
-                onChange={(e) => setProfile({...profile, name: e.target.value})}
-                required 
+                onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+                required
               />
             </div>
-            
+
             <div className="form-group">
               <label className="form-label">Email Address</label>
-              <input 
-                type="email" 
-                className="form-input" 
+              <input
+                type="email"
+                className="form-input"
                 value={profile.email}
                 disabled
                 title="Email cannot be changed"
@@ -59,18 +70,14 @@ const Profile = () => {
 
             <div className="form-group">
               <label className="form-label">New Password (Optional)</label>
-              <input 
-                type="password" 
-                className="form-input" 
-                placeholder="Leave blank to keep current password" 
+              <input
+                type="password"
+                className="form-input"
+                placeholder="Leave blank to keep current password"
               />
             </div>
 
-            {message && (
-              <div style={styles.successMessage}>
-                {message}
-              </div>
-            )}
+            {message && <div style={styles.successMessage}>{message}</div>}
 
             <button type="submit" className="btn" style={{ width: '100%' }}>
               <Save size={18} />
@@ -80,28 +87,32 @@ const Profile = () => {
         </div>
 
         <div className="card">
-          <h3 style={{ marginBottom: '1rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
-            Account Settings
-          </h3>
+          <h3 style={styles.sectionTitle}>Account Settings</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div className="flex-between">
               <div>
                 <p style={{ fontWeight: '500' }}>Email Notifications</p>
-                <p className="text-muted" style={{ fontSize: '0.875rem' }}>Receive daily market updates</p>
+                <p className="text-muted" style={{ fontSize: '0.875rem' }}>
+                  Receive daily market updates
+                </p>
               </div>
               <input type="checkbox" defaultChecked />
             </div>
-            
+
             <div className="flex-between">
               <div>
                 <p style={{ fontWeight: '500' }}>Two-Factor Authentication</p>
-                <p className="text-muted" style={{ fontSize: '0.875rem' }}>Add an extra layer of security</p>
+                <p className="text-muted" style={{ fontSize: '0.875rem' }}>
+                  Add an extra layer of security
+                </p>
               </div>
-              <button className="btn btn-outline" style={{ padding: '0.5rem 1rem' }}>Enable</button>
+              <button className="btn btn-outline" style={{ padding: '0.5rem 1rem' }}>
+                Enable
+              </button>
             </div>
           </div>
 
-          <h3 style={{ marginBottom: '1rem', marginTop: '2rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem', color: 'var(--danger)' }}>
+          <h3 style={{ ...styles.sectionTitle, marginTop: '2rem', color: 'var(--danger)' }}>
             Danger Zone
           </h3>
           <button className="btn btn-danger" style={{ width: '100%' }}>
@@ -131,6 +142,11 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
   },
+  sectionTitle: {
+    marginBottom: '1rem',
+    borderBottom: '1px solid var(--border)',
+    paddingBottom: '0.5rem',
+  },
   successMessage: {
     background: 'rgba(16, 185, 129, 0.1)',
     color: 'var(--success)',
@@ -139,7 +155,7 @@ const styles = {
     marginBottom: '1rem',
     textAlign: 'center',
     border: '1px solid rgba(16, 185, 129, 0.2)',
-  }
+  },
 };
 
 export default Profile;
